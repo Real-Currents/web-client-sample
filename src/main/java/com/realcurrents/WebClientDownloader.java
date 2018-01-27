@@ -1,5 +1,6 @@
 package com.realcurrents;
 
+import org.jetbrains.annotations.NotNull;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -23,20 +24,23 @@ import java.util.function.BiConsumer;
 
 public class WebClientDownloader {
     
+    private final String base;
     static int mark = 5251073;
     static int retry = 3;
     
-    public Flux<String> downloadContent (String url)
-        throws IOException {
+    public WebClientDownloader (String url) {
+        this.base = url;
+    }
+    
+    public Flux<String> retrieveFile (String file) throws IOException {
         final AtomicInteger chunks = new AtomicInteger(1);
         final AtomicLong partBytes = new AtomicLong(0);
         final AtomicLong totalBytes = new AtomicLong(0);
+        final URI url = URI.create(this.base + file);
         Mono<ClientResponse> response;
         
-        System.out.println(url);
-        
         while (retry > 0) try {
-            ClientRequest downloadRequest = ClientRequest.method(HttpMethod.GET, URI.create(url))
+            ClientRequest downloadRequest = ClientRequest.method(HttpMethod.GET, url)
                 .header("Accept", "application/octet-stream")
                 .header("TE", "chunked")
                 .build();
@@ -171,19 +175,19 @@ public class WebClientDownloader {
                             System.out.println(e);
                         }
 
-                        return url;
+                        return url.toString();
                     });
             });
 
-//                /* Process Mono<String> synchronously */
-//                System.out.println("flatMapMany returned "+
-//                    flatMapResult.block().block() +" @ "+ LocalDateTime.now() +"\n"+
-//                    "Uploaded to s3: "+ downloadLocation[1].toString());
+//            /* Process Mono<String> synchronously */
+//            System.out.println("flatMapMany returned "+
+//                flatMapResult.block().block() +" @ "+ LocalDateTime.now() +"\n"+
+//                "Uploaded to s3: "+ downloadLocation[1].toString());
 
-                /* Process Mono<String> asynchronously */
-                System.out.println("flatMapMany " +
-                    ((flatMapResult.subscribe(System.out::println).isDisposed()) ?
-                        "finished" : "running") + " @ " + LocalDateTime.now());
+//            /* Process Mono<String> asynchronously */
+//            System.out.println("flatMapMany " +
+//                ((flatMapResult.subscribe(System.out::println).isDisposed()) ?
+//                    "finished" : "running") + " @ " + LocalDateTime.now());
             
             return flatMapResult;
             
@@ -192,6 +196,11 @@ public class WebClientDownloader {
             retry--;
         }
         
-        return Flux.just(url);
+        return Flux.just(url.toString());
+    }
+    
+    @NotNull
+    public String getBase () {
+        return this.base;
     }
 }
