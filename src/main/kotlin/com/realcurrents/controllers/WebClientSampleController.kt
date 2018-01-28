@@ -30,10 +30,12 @@ public class WebClientSampleController {
         val quickResponse: HashMap<String, Any> = HashMap<String, Any>()
         quickResponse.set("Status", "Downloading set of all files from "+ downloader.base)
 
-        retrieveFileSet("small")
-        retrieveFileSet("medium")
-        retrieveFileSet("large")
-        retrieveFileSet("xlarge")
+        async {
+            retrieveFileSet("small")
+            retrieveFileSet("medium")
+            retrieveFileSet("large")
+            retrieveFileSet("xlarge")
+        }
 
         return ResponseEntity.ok(quickResponse)
     }
@@ -97,7 +99,7 @@ public class WebClientSampleController {
             Size.SMALL.prefix, Size.MEDIUM.prefix, Size.LARGE.prefix, Size.XLARGE.prefix ->
                 retrieveFileSet(fileName)
             else ->
-                downloader.retrieveFile(fileName).subscribe{println("Getting "+ it)}
+                downloader.retrieveFile(fileName).subscribe{println("Retrieved "+ it[3])}
         }
         quickResponse.set("Status", "Downloading "+ fileName)
         return ResponseEntity.ok(quickResponse)

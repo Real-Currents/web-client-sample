@@ -96,7 +96,7 @@ public class WebClientDownloader {
                 
                 return res.bodyToFlux(DataBuffer.class)
                     .collect(
-                        InputStreamCollector::new,
+                        () -> { return new InputStreamCollector(partStream, 5251073); } ,
                         new BiConsumer<InputStreamCollector, DataBuffer>() {
                             @Override
                             public void accept (InputStreamCollector inputStreamCollector, DataBuffer dataBuffer) {
@@ -116,10 +116,11 @@ public class WebClientDownloader {
                                         totalBytes.addAndGet(size);
                                         System.out.println(
                                             "Encode chunk " + number +" to InputStream: " + size + " bytes");
+    
+                                        /* Do something with inputStreamCollector.getInputStream() */
+                                        // ...
                                         
                                         partBytes.set(0);
-
-//                                        partStream.clear();
 
                                         if (inputStreamCollector.getInputStream() != null) {
                                             inputStreamCollector.getInputStream().close();
@@ -155,25 +156,26 @@ public class WebClientDownloader {
 
                                     System.out.println("Encode final part for assembly of "+ url);
 
-//                                    String md5;
-//                                    uploadPartStream = new SequenceInputStream(partStream.elements());
-//                                    md5 = DatatypeConverter.printBase64Binary(Md5Utils.computeMD5Hash(uploadPartStream));
-
                                     totalBytes.addAndGet(size);
                                     System.out.println(
                                         "Encode chunk " + number + " to InputStream: " + size + " bytes");
-
+                                    
+                                    /* Do something with streamCollector.getInputStream() */
+                                    // ...
 
                                     partBytes.set(0);
-
-                                    partStream.clear();
+    
+                                    if (streamCollector.getInputStream() != null) {
+                                        streamCollector.getInputStream().close();
+                                        streamCollector.clear();
+                                    }
 
                                 }
 
                             } else {
                                 System.out.println("Save complete file of "+ url);
                                 
-                                /* Do something with streamCollector.getInputStream() */
+                                /* Do something with entire streamCollector.getInputStream() */
                                 // ...
                             }
                             
