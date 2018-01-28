@@ -32,11 +32,12 @@ public class WebClientDownloader {
         this.base = url;
     }
     
-    public Flux<String> retrieveFile (String file) throws IOException {
+    public Flux<String[]> retrieveFile (String file) throws IOException {
         final AtomicInteger chunks = new AtomicInteger(1);
         final AtomicLong partBytes = new AtomicLong(0);
         final AtomicLong totalBytes = new AtomicLong(0);
         final URI url = URI.create(this.base + file);
+        final String[] info = new String[5]; // { url, status, disposition (server-assigned name), type, size }
         Mono<ClientResponse> response;
         
         while (retry > 0) try {
@@ -49,6 +50,8 @@ public class WebClientDownloader {
                 .filter(ExchangeFilterFunction.ofRequestProcessor(
                     req -> {
                         System.out.println(req.url());
+                        info[0] = req.url().toString();
+                        
                         req.headers().forEach(
                             (key, value) -> {
                                 System.out.print(key + ": ");
@@ -59,8 +62,9 @@ public class WebClientDownloader {
                 )
                 .exchange(downloadRequest);
             
-            Flux<String> flatMapResult = response.flatMapMany((ClientResponse res) -> {
+            Flux<String[]> flatMapResult = response.flatMapMany((ClientResponse res) -> {
                 System.out.println(res.statusCode());
+                info[1] = res.statusCode().toString();
                 
                 HttpHeaders httpHeaders = res.headers().asHttpHeaders();
                 for (Object header : httpHeaders.keySet().toArray()) {
@@ -71,14 +75,17 @@ public class WebClientDownloader {
                         case "Content-Disposition":
                             System.out.print(header + ": ");
                             System.out.println(value);
-                            break;
-                        case "Content-Length":
-                            System.out.print(header + ": ");
-                            System.out.println(value);
+                            info[2] = value;
                             break;
                         case "Content-Type":
                             System.out.print(header + ": ");
                             System.out.println(value);
+                            info[3] = value;
+                            break;
+                        case "Content-Length":
+                            System.out.print(header + ": ");
+                            System.out.println(value);
+                            info[4] = value;
                             break;
                         default:
                             continue;
@@ -175,7 +182,7 @@ public class WebClientDownloader {
                             System.out.println(e);
                         }
 
-                        return url.toString();
+                        return info;
                     });
             });
 
@@ -196,7 +203,7 @@ public class WebClientDownloader {
             retry--;
         }
         
-        return Flux.just(url.toString());
+        return Flux.<String[]>just(info);
     }
     
     @NotNull
