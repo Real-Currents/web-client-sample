@@ -119,7 +119,7 @@ public class WebClientDownloader {
                                         
                                         partBytes.set(0);
 
-                                        partStream.clear();
+//                                        partStream.clear();
 
                                         if (inputStreamCollector.getInputStream() != null) {
                                             inputStreamCollector.getInputStream().close();
@@ -185,16 +185,6 @@ public class WebClientDownloader {
                         return info;
                     });
             });
-
-//            /* Process Mono<String> synchronously */
-//            System.out.println("flatMapMany returned "+
-//                flatMapResult.block().block() +" @ "+ LocalDateTime.now() +"\n"+
-//                "Uploaded to s3: "+ downloadLocation[1].toString());
-
-//            /* Process Mono<String> asynchronously */
-//            System.out.println("flatMapMany " +
-//                ((flatMapResult.subscribe(System.out::println).isDisposed()) ?
-//                    "finished" : "running") + " @ " + LocalDateTime.now());
             
             return flatMapResult;
             
