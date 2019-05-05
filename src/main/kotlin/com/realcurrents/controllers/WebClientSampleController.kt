@@ -46,21 +46,20 @@ public class WebClientSampleController {
 
     @GetMapping("/sendAuthRequest/{authKey}")
     fun sendAuthRequest (@PathVariable("authKey") authKey: String): ResponseEntity<Any> {
-        var response: String? = null
+        var recRequest: ClientResponse? = null
 
         val request = wc.get().uri("/get")
           .accept(MediaType.APPLICATION_JSON)
           .header("Authorization", "Bearer ${authKey}")
           .exchange()
 
-        response = request
+        val response: ClientResponse? = request
           .doOnError { r ->
               println(r.message.toString())
               r.printStackTrace()
           }
           .doOnNext{ r ->
-              println("Server Response: ")
-              println(r.bodyToMono(String::class.java))
+              recRequest = r
           }
           .doOnRequest { req ->
               println("Sending request with Authorization: Bearer ${authKey}")
@@ -68,11 +67,14 @@ public class WebClientSampleController {
           .doOnSuccess { res: ClientResponse ->
               println("Completed request: ${res.statusCode()}")
           }
-          .block()!!
-          .bodyToMono(String::class.java)
           .block()
 
-        return ResponseEntity.ok(response)
+        val info: String? = recRequest?.bodyToMono(String::class.java)?.block()
+
+        println("Server Response: ")
+        println(info)
+
+        return ResponseEntity.ok(info)
     }
 
     @GetMapping("/downThemAll")
@@ -146,6 +148,7 @@ public class WebClientSampleController {
     fun getFile (@PathVariable fileName: String): ResponseEntity<Any> {
         val quickResponse = HashMap<String, Any>()
         when (fileName) {
+            "favicon.ico" -> quickResponse.set("favicon", "true")
             Size.SMALL.prefix, Size.MEDIUM.prefix, Size.LARGE.prefix, Size.XLARGE.prefix ->
                 retrieveFileSet(fileName)
             else ->
