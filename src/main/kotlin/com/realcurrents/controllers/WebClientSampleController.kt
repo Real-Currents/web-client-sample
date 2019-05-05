@@ -10,8 +10,12 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.reactive.function.client.ClientResponse
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction
+import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.Disposable
 import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -20,10 +24,55 @@ import java.util.concurrent.atomic.AtomicLong
 @RequestMapping(produces = arrayOf(MediaType.APPLICATION_JSON_UTF8_VALUE))
 public class WebClientSampleController {
 
-    private val setLimit = 8;
-
     @Autowired
     private lateinit var downloader: WebClientDownloader
+
+    private val setLimit = 8
+
+    private val testUrl: String = "http://httpbin.org"
+
+    private val wc: WebClient = WebClient.builder()
+      .baseUrl(this.testUrl)
+      .filter(this.logRequest())
+      .build()
+
+    private fun logRequest(): ExchangeFilterFunction {
+        return ExchangeFilterFunction.ofRequestProcessor { clientRequest ->
+            println("${clientRequest.method()} ${clientRequest.url()}")
+            clientRequest.headers().forEach { name, values -> values.forEach { value -> println("${name} ${value}") } }
+            Mono.just(clientRequest)
+        }
+    }
+
+    @GetMapping("/sendAuthRequest/{authKey}")
+    fun sendAuthRequest (@PathVariable("authKey") authKey: String): ResponseEntity<Any> {
+        var response: String? = null
+
+        val request = wc.get().uri("/get")
+          .accept(MediaType.APPLICATION_JSON)
+          .header("Authorization", "Bearer ${authKey}")
+          .exchange()
+
+        response = request
+          .doOnError { r ->
+              println(r.message.toString())
+              r.printStackTrace()
+          }
+          .doOnNext{ r ->
+              println(r.bodyToMono(String::class.java))
+          }
+          .doOnRequest { req ->
+              println("Sending request with Authorization: Bearer ${authKey}")
+          }
+          .doOnSuccess { res: ClientResponse ->
+              println("Completed request: ${res.statusCode()}")
+          }
+          .block()!!
+          .bodyToMono(String::class.java)
+          .block()
+
+        return ResponseEntity.ok(response)
+    }
 
     @GetMapping("/downThemAll")
     fun getAllFiles (): ResponseEntity<Any> {
