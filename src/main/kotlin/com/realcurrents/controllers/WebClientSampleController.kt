@@ -59,6 +59,7 @@ public class WebClientSampleController {
               r.printStackTrace()
           }
           .doOnNext{ r ->
+              println("Server Response: ")
               println(r.bodyToMono(String::class.java))
           }
           .doOnRequest { req ->
