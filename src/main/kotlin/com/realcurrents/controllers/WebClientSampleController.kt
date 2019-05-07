@@ -45,7 +45,7 @@ public class WebClientSampleController {
     }
 
     @GetMapping("/sendAuthRequest/{authKey}")
-    fun sendAuthRequest (@PathVariable("authKey") authKey: String): ResponseEntity<Any> {
+    fun sendAuthRequest (@PathVariable("authKey") authKey: String): Mono<ResponseEntity<String>> {
         var recRequest: ClientResponse? = null
 
         val request = wc.get().uri("/get")
@@ -53,7 +53,7 @@ public class WebClientSampleController {
           .header("Authorization", "Bearer ${authKey}")
           .exchange()
 
-        val response: ClientResponse? = request
+        return request
           .doOnError { r ->
               println(r.message.toString())
               r.printStackTrace()
@@ -67,14 +67,15 @@ public class WebClientSampleController {
           .doOnSuccess { res: ClientResponse ->
               println("Completed request: ${res.statusCode()}")
           }
-          .block()
-
-        val info: String? = recRequest?.bodyToMono(String::class.java)?.block()
-
-        println("Server Response: ")
-        println(info)
-
-        return ResponseEntity.ok(info)
+          .flatMap { r ->
+              r.bodyToMono(String::class.java)
+                .map { s ->
+                    val info: String = s
+                    println("Server Response: ")
+                    println(info)
+                    ResponseEntity.ok(info)
+                }
+          }
     }
 
     @GetMapping("/downThemAll")
